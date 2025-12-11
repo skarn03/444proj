@@ -408,7 +408,7 @@ function RuleItem({ label, valid, isCurrent, isActive, onToggle }) {
           : "border-zinc-700/80 bg-zinc-900/70 text-zinc-200",
         isCurrent && !valid ? "animate-[blink_1.2s_ease-in-out_infinite]" : "",
         !valid &&
-        "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]",
+          "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]",
         !isActive ? "opacity-60 border-dashed" : "",
       ].join(" ")}
     >
@@ -710,12 +710,17 @@ export default function App() {
     [password, RULES, activeRuleIds]
   );
 
+  // <<< NEW: only count rules that have actually appeared (visible) >>>
   const activeResults = results.filter((r) => r.isActive);
-  const satisfied = activeResults.filter((r) => r.valid).length;
+  const visibleActiveResults = visible.filter((r) => r.isActive);
+  const satisfied = visibleActiveResults.filter((r) => r.valid).length;
+  const totalShown = visibleActiveResults.length || 0;
   const allDone =
-    activeResults.length > 0 && satisfied === activeResults.length;
+    activeResults.length > 0 && activeResults.every((r) => r.valid);
   const progress =
-    activeResults.length === 0 ? 0 : (satisfied / activeResults.length) * 100;
+    totalShown === 0 ? 0 : (satisfied / totalShown) * 100;
+  // <<< END NEW >>>
+
   const currentIndex = visible.length - 1;
 
   // --- Grandpa auto-walk every ~12 seconds ---
@@ -826,12 +831,12 @@ export default function App() {
 
     if (shouldPlayCorrect && correctSoundRef.current) {
       correctSoundRef.current.currentTime = 0;
-      correctSoundRef.current.play().catch(() => { });
+      correctSoundRef.current.play().catch(() => {});
     }
 
     if (shouldPlayIncorrect && incorrectSoundRef.current) {
       incorrectSoundRef.current.currentTime = 0;
-      incorrectSoundRef.current.play().catch(() => { });
+      incorrectSoundRef.current.play().catch(() => {});
     }
   }, [visible]);
 
@@ -907,8 +912,6 @@ export default function App() {
               </div>
             </div>
           </div>
-
-
         </header>
 
         {/* MAIN GRID */}
@@ -944,7 +947,7 @@ export default function App() {
                     </span>
                     <span>
                       {" "}
-                      / {activeResults.length || results.length} rules satisfied
+                      / {totalShown || 0} rules satisfied
                     </span>
                   </span>
                 </span>
@@ -1009,8 +1012,6 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-
-
                 </div>
                 <h2 className="flex items-center gap-2 text-sm sm:text-base font-semibold tracking-wide text-yellow-100">
                   <SparkIcon className="h-4 w-4 text-yellow-300" />
