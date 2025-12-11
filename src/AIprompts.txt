@@ -1,4 +1,4 @@
-- help setup react with vite and tailwind
-- help debugging and fixing a css bug where an element it hidden
-- what are some extensions for vs code to make github work easier
-- ideas to save highscores locally without having database 
+- help setup react with vite and tailwind.
+- help debugging and fixing a css bug where an element it hidden.
+- what are some extensions for vs code to make github work easier.
+- ideas to save highscores locally without having database.
