@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import Snowflakes from "./Snowflakes";
+import babyLaughGif from "./baby-laugh-ai-baby.gif";
 
 /** -----------------------------
  * Constants
@@ -864,6 +865,19 @@ export default function App() {
 
       {/* Snowflakes effect */}
       <Snowflakes />
+
+      {/* Baby laugh GIF when all rules are satisfied */}
+      {allDone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="animate-[bounceIn_600ms_ease-out]">
+            <img
+              src={babyLaughGif}
+              alt="Baby laughing - All rules satisfied!"
+              className="w-64 h-64 rounded-full shadow-[0_0_80px_rgba(234,179,8,0.8)] border-4 border-yellow-400/60"
+            />
+          </div>
+        </div>
+      )}
 
       {/* big soft glows */}
       <div className="pointer-events-none fixed inset-0">
