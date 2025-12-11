@@ -51,6 +51,15 @@ function sumDigits(str) {
   return s;
 }
 
+// Is n a prime number? (kept for future use if needed)
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i++) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}
+
 // Does a string start with a letter?
 function startsWithLetter(str) {
   return /^[A-Za-z]/.test(str);
@@ -101,14 +110,30 @@ function sumAtomicNumbersInString(str) {
   return sum;
 }
 
-// Grandpa rule: 👴 and 🏠 must be adjacent and there must be no 🪨
-function grandpaRuleTest(str) {
+// Build the visible password from the "core" region + Grandpa position
+// core = everything between 👴 and 🏠
+// grandpaPos = index inside core where 👴 sits in front of that character
+function buildGrandpaPassword(core, grandpaPos) {
+  const clampedPos = Math.max(0, Math.min(grandpaPos, core.length));
+  const left = core.slice(0, clampedPos);
+  const right = core.slice(clampedPos);
+  // Grandpa is somewhere in the string; home is ALWAYS at the very end
+  return `${left}👴${right}🏠`;
+}
+
+// Grandpa rule: 👴 must reach 🏠 with no 🪨 left anywhere
+function grandpaReachedHome(str) {
   const g = str.indexOf("👴");
-  const h = str.lastIndexOf("🏠");
+  const h = str.indexOf("🏠");
   if (g === -1 || h === -1) return false;
-  if (h <= g) return false;
+
+  // Must be directly next to the house in order (…👴🏠)
+  if (g + 1 !== h) return false;
+
+  // No stones anywhere in the string
   if (str.includes("🪨")) return false;
-  return h - g === 1;
+
+  return true;
 }
 
 /** -----------------------------
@@ -180,11 +205,11 @@ function buildBaseRules(forbidden) {
       test: (v) => noTripleRepeat(v),
     },
 
-    // 13–15: slightly more “language/regex” flavored
+    // 13–15: slightly more “formal language / regex” flavored
     {
       id: "startsWithLetter",
-      label: "Your password must start with a letter or emoji.",
-      test: (v) => v.length > 0 && !v[0].match(/\s/),
+      label: "Your password must start with a letter.",
+      test: (v) => (v.length === 0 ? false : startsWithLetter(v)),
     },
     {
       id: "minTwoWords",
@@ -415,7 +440,7 @@ function RuleItem({ label, valid, isCurrent, isActive, onToggle }) {
       <button
         type="button"
         onClick={onToggle}
-        className="ml-auto text-[10px] sm:text-[11px] rounded-full border border-zinc-600 px-2 py-0.5 hover:border-yellow-400 hover:text-yellow-300 transition-colors"
+        className="ml-auto text-[10px] sm:text[11px] rounded-full border border-zinc-600 px-2 py-0.5 hover:border-yellow-400 hover:text-yellow-300 transition-colors"
       >
         {isActive ? "Disable" : "Enable"}
       </button>
@@ -427,9 +452,29 @@ function RuleItem({ label, valid, isCurrent, isActive, onToggle }) {
  * App
  * ----------------------------- */
 export default function App() {
-  const [password, setPassword] = useState("");
-  const [grandpaInitialized, setGrandpaInitialized] = useState(false);
-  const [grandpaMessage, setGrandpaMessage] = useState("");
+  // Core part of the password BETWEEN 👴 and 🏠 (user edit zone)
+  const [corePassword, setCorePassword] = useState("");
+
+  // Grandpa's position inside the core (0 = at the very start)
+  const [grandpaPos, setGrandpaPos] = useState(0);
+
+  // Refs to avoid stale values inside intervals
+  const corePasswordRef = useRef(corePassword);
+  const grandpaPosRef = useRef(grandpaPos);
+
+  useEffect(() => {
+    corePasswordRef.current = corePassword;
+  }, [corePassword]);
+
+  useEffect(() => {
+    grandpaPosRef.current = grandpaPos;
+  }, [grandpaPos]);
+
+  // Final visible password: core + 👴 somewhere + 🏠 at the end
+  const password = useMemo(
+    () => buildGrandpaPassword(corePassword, grandpaPos),
+    [corePassword, grandpaPos]
+  );
 
   // Forbidden letters (static for this session)
   const forbidden = useMemo(() => {
@@ -615,8 +660,8 @@ export default function App() {
       {
         id: "grandpaHome",
         label:
-          "Grandpa must reach home: your password must contain 👴 and 🏠 next to each other with no stones 🪨 anywhere.",
-        test: (v) => grandpaRuleTest(v),
+          "Make sure the old man reaches home: your password must contain …👴🏠… with no stones 🪨 left anywhere.",
+        test: (v) => grandpaReachedHome(v),
       },
     ],
     []
@@ -638,9 +683,11 @@ export default function App() {
       const next = new Set(prev);
       const ruleIdSet = new Set(RULES.map((r) => r.id));
 
+      // remove any ids that no longer exist
       for (const id of next) {
         if (!ruleIdSet.has(id)) next.delete(id);
       }
+      // add any new rule ids
       RULES.forEach((r) => {
         if (!next.has(r.id)) next.add(r.id);
       });
@@ -671,6 +718,75 @@ export default function App() {
     activeResults.length === 0 ? 0 : (satisfied / activeResults.length) * 100;
   const currentIndex = visible.length - 1;
 
+  // --- Grandpa auto-walk every ~12 seconds ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGrandpaPos((prevPos) => {
+        const core = corePasswordRef.current;
+        if (!core.length) return prevPos;
+        if (prevPos >= core.length) return prevPos; // already at home
+
+        const nextPos = prevPos + 1;
+        const nextPassword = buildGrandpaPassword(core, nextPos);
+
+        // If Grandpa is now right before a stone, he stumbled -> reset
+        if (nextPassword.includes("👴🪨")) {
+          // Reset the middle content and Grandpa position
+          setCorePassword("");
+          return 0;
+        }
+
+        return nextPos;
+      });
+    }, 12000); // 12 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- Stone spawner: randomly add 🪨 between Grandpa and Home, not next to each other ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCorePassword((prevCore) => {
+        const core = prevCore;
+        if (!core.length) return core;
+
+        const gPos = grandpaPosRef.current;
+        // Stones must appear AFTER Grandpa, BEFORE Home (i.e., inside the core, past gPos)
+        const startIndex = Math.min(core.length - 1, gPos + 1);
+        const endIndex = core.length - 1;
+        if (startIndex > endIndex) return core; // no space between Grandpa and Home
+
+        let attempts = 0;
+        let indexToPlace = -1;
+
+        while (attempts < 8) {
+          const candidate =
+            Math.floor(Math.random() * (endIndex - startIndex + 1)) +
+            startIndex;
+
+          const ch = core[candidate];
+          const left = core[candidate - 1];
+          const right = core[candidate + 1];
+
+          // No stone here already, and no stones directly next to it
+          if (ch !== "🪨" && left !== "🪨" && right !== "🪨") {
+            indexToPlace = candidate;
+            break;
+          }
+          attempts++;
+        }
+
+        if (indexToPlace === -1) return core;
+
+        return (
+          core.slice(0, indexToPlace) + "🪨" + core.slice(indexToPlace)
+        );
+      });
+    }, 10000); // ~10 seconds between spawns
+
+    return () => clearInterval(interval);
+  }, []);
+
   // --- SOUND EFFECTS ---
   const correctSoundRef = useRef(null);
   const incorrectSoundRef = useRef(null);
@@ -686,6 +802,7 @@ export default function App() {
     if (prev) {
       const len = Math.min(prev.length, currentVisible.length);
 
+      // Compare overlapping visible rules
       for (let i = 0; i < len; i++) {
         if (!prev[i] && currentVisible[i]) {
           shouldPlayCorrect = true;
@@ -694,6 +811,7 @@ export default function App() {
         }
       }
 
+      // If visible got shorter and we lost some previously valid rules, treat as breaking older rules
       if (currentVisible.length < prev.length) {
         for (let i = currentVisible.length; i < prev.length; i++) {
           if (prev[i]) {
@@ -717,103 +835,17 @@ export default function App() {
     }
   }, [visible]);
 
-  /* -----------------------------
-   * GRANDPA INITIAL INJECTION
-   * ----------------------------- */
-  const handlePasswordChange = (raw) => {
-    setGrandpaMessage("");
-    if (!grandpaInitialized) {
-      if (raw.length === 0) {
-        setPassword("");
-        return;
-      }
-      // First time: wrap whatever they typed with 👴 ... 🏠
-      const wrapped = "👴" + raw + "🏠";
-      setPassword(wrapped);
-      setGrandpaInitialized(true);
-      setGrandpaMessage(
-        "We added Grandpa 👴 at the start and his home 🏠 at the end. Keep the path clear of stones 🪨!"
-      );
-    } else {
-      setPassword(raw);
-    }
+  // Handle user typing. They only control the core;
+  // we always re-insert 👴 and 🏠 in the right places.
+  const handlePasswordChange = (e) => {
+    const raw = e.target.value || "";
+    // Strip out Grandpa and Home from whatever the user typed
+    let cleaned = raw.replace(/👴/g, "").replace(/🏠/g, "");
+
+    setCorePassword(cleaned);
+    // Clamp Grandpa's position so he never goes past the end of the core
+    setGrandpaPos((prev) => Math.min(prev, cleaned.length));
   };
-
-  /* -----------------------------
-   * GRANDPA MOVEMENT (every ~12s)
-   * ----------------------------- */
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPassword((prev) => {
-        if (!activeRuleIds.has("grandpaHome")) return prev;
-        const g = prev.indexOf("👴");
-        const h = prev.lastIndexOf("🏠");
-        if (g === -1 || h === -1 || h <= g) return prev;
-
-        // Already at home (adjacent)
-        if (h - g === 1) return prev;
-
-        const nextChar = prev[g + 1];
-
-        // If the next step is a stone, Grandpa stumbles and the game resets
-        if (nextChar === "🪨") {
-          setGrandpaMessage("Grandpa tripped on a stone 🪨 and the game reset!");
-          setGrandpaInitialized(false);
-          return "";
-        }
-
-        const chars = [...prev];
-        const temp = chars[g + 1];
-        chars[g + 1] = "👴";
-        chars[g] = temp;
-        return chars.join("");
-      });
-    }, 12000); // move every 12 seconds
-
-    return () => clearInterval(interval);
-  }, [activeRuleIds]);
-
-  /* -----------------------------
-   * STONE SPAWNING (every ~10s)
-   * ----------------------------- */
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPassword((prev) => {
-        if (!activeRuleIds.has("grandpaHome")) return prev;
-        const g = prev.indexOf("👴");
-        const h = prev.lastIndexOf("🏠");
-        if (g === -1 || h === -1 || h <= g + 1) {
-          return prev; // too short path or invalid
-        }
-
-        // Don't spawn stones once Grandpa is at home
-        if (h - g === 1) return prev;
-
-        const candidates = [];
-        for (let i = g + 1; i < h; i++) {
-          const ch = prev[i];
-          if (ch === "👴" || ch === "🏠" || ch === "🪨") continue;
-
-          // no adjacent stones
-          const left = i > 0 ? prev[i - 1] : null;
-          const right = i + 1 < prev.length ? prev[i + 1] : null;
-          if (left === "🪨" || right === "🪨") continue;
-
-          // not right next to Grandpa (give user reaction time)
-          if (i === g + 1 || i === g - 1) continue;
-
-          candidates.push(i);
-        }
-
-        if (candidates.length === 0) return prev;
-
-        const pos = candidates[Math.floor(Math.random() * candidates.length)];
-        return prev.slice(0, pos) + "🪨" + prev.slice(pos);
-      });
-    }, 10000); // spawn every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [activeRuleIds]);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 font-display selection:bg-yellow-500 selection:text-black">
@@ -839,7 +871,7 @@ export default function App() {
       <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10 animate-[fadeInUp_2s_ease-in-out]">
         {/* TOP BAR / HEADER */}
         <header className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3 w-1/2">
+          <div className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-yellow-200/90 animate-[slideDown_500ms_ease-in-out]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-300" />
               <span className="flex items-center gap-1">
@@ -857,31 +889,15 @@ export default function App() {
               </span>
             </div>
 
-             {/* Grandpa status / hint */}
-            <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/80 px-4 py-3 text-xs sm:text-sm text-yellow-100 shadow-[0_0_24px_rgba(0,0,0,0.7)]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/15 text-xl">
-                👴
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold tracking-wide text-yellow-200">
-                  Grandpa&apos;s Journey
-                </div>
-                <div className="mt-0.5 text-[11px] sm:text-xs text-yellow-100/80">
-                  We place 👴 at the very start and 🏠 at the very end of your
-                  password the first time you type. Stones 🪨 appear between
-                  them over time. Delete the stones before Grandpa walks into
-                  one or the whole game resets.
-                </div>
-                {grandpaMessage && (
-                  <div className="mt-1 text-[11px] text-yellow-200/90">
-                    {grandpaMessage}
-                  </div>
-                )}
-              </div>
-            </div>
+            <p className="max-w-xl text-sm sm:text-base text-zinc-300">
+              Start with simple rules and slowly unlock weirder, more
+              pattern-based constraints. Fix the current rule to reveal the next
+              one. Grandpa is now part of the string itself: you literally need
+              👴 and 🏠 in your password, with a clean path between them.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out] w-1/2">
+          <div className="flex flex-col gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out]">
             <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 shadow-[0_0_26px_rgba(234,179,8,0.28)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_32px_rgba(234,179,8,0.4)]">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/25 text-yellow-50">
                 <GaugeIcon className="h-4 w-4" />
@@ -890,13 +906,29 @@ export default function App() {
                 <div className="text-[10px] uppercase tracking-[0.18em] text-yellow-200/80">
                   Rules Complete
                 </div>
-                <div className="mt-1 flex justify-start text-lg font-semibold text-yellow-50">
+                <div className="mt-1 text-lg font-semibold text-yellow-50">
                   {satisfied} / {activeResults.length || results.length}
                 </div>
               </div>
             </div>
 
-    
+            {/* Tiny Grandpa hint card */}
+            <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/80 px-4 py-3 text-xs sm:text-sm text-yellow-100 shadow-[0_0_24px_rgba(0,0,0,0.7)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/15 text-xl">
+                👴
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold tracking-wide text-yellow-200">
+                  Grandpa&apos;s Rule
+                </div>
+                <div className="mt-0.5 text-[11px] sm:text-xs text-yellow-100/80">
+                  Grandpa starts at the left and slowly walks right every few
+                  seconds. Stones 🪨 randomly appear between him and his home.
+                  Delete every stone so he can safely end up as{" "}
+                  <span className="font-mono">…👴🏠</span>.
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -915,9 +947,9 @@ export default function App() {
                   <input
                     type="text"
                     value={password}
-                    onChange={(e) => handlePasswordChange(e.target.value)}
+                    onChange={handlePasswordChange}
                     className="peer w-full rounded-xl bg-zinc-900/80 border border-zinc-700 text-base sm:text-lg md:text-xl px-4 sm:px-5 py-3 sm:py-3.5 text-yellow-50 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/60 focus:border-yellow-500/50 transition-all duration-300 ease-out"
-                    placeholder="Start typing something legendary…"
+                    placeholder="Start typing something legendary… Grandpa will find his way."
                     aria-label="Password input"
                   />
                   <div className="pointer-events-none absolute inset-x-0 -bottom-1 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
@@ -965,10 +997,10 @@ export default function App() {
               </div>
               <p className="leading-relaxed">
                 Rules unlock in order. When one fails, new rules stop revealing
-                until you fix it. You can temporarily disable any rule for
-                demonstrations. Grandpa&apos;s rule behaves just like the
-                others, but under the hood we&apos;re mutating your password
-                string, spawning 🪨, and walking 👴 toward 🏠 over time.
+                until you fix it. You can temporarily disable any rule to
+                demonstrate its effect. Some rules are classic password checks,
+                others are tiny language puzzles—and one of them cares deeply
+                about an old man, his stones, and his house.
               </p>
             </div>
 
