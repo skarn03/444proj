@@ -24,12 +24,12 @@ const months = [
 const brands = ["pepsi", "starbucks", "shell"];
 
 const elementSymbols = new Set([
-  "He","Li","Be","Ne","Na","Mg","Al","Si","Cl","Ar","Ca","Sc","Ti","Cr","Mn",
-  "Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr","Rb","Sr","Zr","Nb",
-  "Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","Xe","Cs","Ba","La",
-  "Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb","Lu","Hf",
-  "Ta","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn","Fr","Ra",
-  "Ac","Th","Pa","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr"
+  "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti", "Cr", "Mn",
+  "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Zr", "Nb",
+  "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "Xe", "Cs", "Ba", "La",
+  "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf",
+  "Ta", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra",
+  "Ac", "Th", "Pa", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr"
 ]);
 
 const atomicNumber = {
@@ -234,8 +234,8 @@ function buildBaseRules(forbidden) {
       label: "Your password must show its strength: include at least 3 🏋️ emojis.",
       test: (v) =>
         countEmoji(v, "🏋️") +
-          countEmoji(v, "🏋️‍♂️") +
-          countEmoji(v, "🏋️‍♀️") >= 3,
+        countEmoji(v, "🏋️‍♂️") +
+        countEmoji(v, "🏋️‍♀️") >= 3,
     },
 
     // 19–21: meta / language shape
@@ -408,7 +408,7 @@ function RuleItem({ label, valid, isCurrent, isActive, onToggle }) {
           : "border-zinc-700/80 bg-zinc-900/70 text-zinc-200",
         isCurrent && !valid ? "animate-[blink_1.2s_ease-in-out_infinite]" : "",
         !valid &&
-          "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]",
+        "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]",
         !isActive ? "opacity-60 border-dashed" : "",
       ].join(" ")}
     >
@@ -826,12 +826,12 @@ export default function App() {
 
     if (shouldPlayCorrect && correctSoundRef.current) {
       correctSoundRef.current.currentTime = 0;
-      correctSoundRef.current.play().catch(() => {});
+      correctSoundRef.current.play().catch(() => { });
     }
 
     if (shouldPlayIncorrect && incorrectSoundRef.current) {
       incorrectSoundRef.current.currentTime = 0;
-      incorrectSoundRef.current.play().catch(() => {});
+      incorrectSoundRef.current.play().catch(() => { });
     }
   }, [visible]);
 
@@ -871,12 +871,12 @@ export default function App() {
       <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10 animate-[fadeInUp_2s_ease-in-out]">
         {/* TOP BAR / HEADER */}
         <header className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3">
+          <div className="space-y-3 w-1/2">
             <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-yellow-200/90 animate-[slideDown_500ms_ease-in-out]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-300" />
               <span className="flex items-center gap-1">
                 <SparkIcon className="h-3 w-3" />
-                Live Rules Engine
+                Group 2 Project
               </span>
             </div>
 
@@ -887,29 +887,6 @@ export default function App() {
               <span className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-300 shadow-[0_0_16px_rgba(234,179,8,0.4)] animate-[popIn_420ms_ease-out]">
                 <LockIcon className="h-4 w-4" />
               </span>
-            </div>
-
-            <p className="max-w-xl text-sm sm:text-base text-zinc-300">
-              Start with simple rules and slowly unlock weirder, more
-              pattern-based constraints. Fix the current rule to reveal the next
-              one. Grandpa is now part of the string itself: you literally need
-              👴 and 🏠 in your password, with a clean path between them.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out]">
-            <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 shadow-[0_0_26px_rgba(234,179,8,0.28)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_32px_rgba(234,179,8,0.4)]">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/25 text-yellow-50">
-                <GaugeIcon className="h-4 w-4" />
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-yellow-200/80">
-                  Rules Complete
-                </div>
-                <div className="mt-1 text-lg font-semibold text-yellow-50">
-                  {satisfied} / {activeResults.length || results.length}
-                </div>
-              </div>
             </div>
 
             {/* Tiny Grandpa hint card */}
@@ -930,6 +907,8 @@ export default function App() {
               </div>
             </div>
           </div>
+
+
         </header>
 
         {/* MAIN GRID */}
@@ -1016,6 +995,23 @@ export default function App() {
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-4 sm:p-5 md:p-6 shadow-[0_0_32px_rgba(0,0,0,0.85)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_40px_rgba(234,179,8,0.18)] animate-[fadeIn_750ms_ease-in-out]">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
+                <div className=" mb-5 flex flex-col gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out] w-1/2">
+                  <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 shadow-[0_0_26px_rgba(234,179,8,0.28)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_32px_rgba(234,179,8,0.4)]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/25 text-yellow-50">
+                      <GaugeIcon className="h-4 w-4" />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-yellow-200/80">
+                        Rules Complete
+                      </div>
+                      <div className="mt-1 text-lg flex justify-start font-semibold text-yellow-50">
+                        {satisfied} / {activeResults.length || results.length}
+                      </div>
+                    </div>
+                  </div>
+
+
+                </div>
                 <h2 className="flex items-center gap-2 text-sm sm:text-base font-semibold tracking-wide text-yellow-100">
                   <SparkIcon className="h-4 w-4 text-yellow-300" />
                   Live Rule Feed
