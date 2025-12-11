@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Snowflakes from "./Snowflakes";
 
 /** -----------------------------
  * Helpers
@@ -243,6 +244,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 font-display selection:bg-yellow-500 selection:text-black">
+      {/* Snowflakes effect */}
+      <Snowflakes />
+      
       {/* big soft glows */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -left-40 top-[-8rem] h-72 w-72 rounded-full bg-yellow-500/15 blur-3xl" />
