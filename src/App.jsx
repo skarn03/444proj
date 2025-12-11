@@ -1,14 +1,27 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import Snowflakes from "./Snowflakes";
 
 /** -----------------------------
- * Helpers
+ * Constants
  * ----------------------------- */
+const DICT_WORDS = ["chaos", "winter", "cipher", "galaxy", "quantum"];
+
 const months = [
-  "january","february","march","april","may","june",
-  "july","august","september","october","november","december",
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
 ];
 
-const brands = ["pepsi","starbucks","shell"];
+const brands = ["pepsi", "starbucks", "shell"];
 
 const elementSymbols = new Set([
   "He","Li","Be","Ne","Na","Mg","Al","Si","Cl","Ar","Ca","Sc","Ti","Cr","Mn",
@@ -20,63 +33,64 @@ const elementSymbols = new Set([
 ]);
 
 const atomicNumber = {
-  H:1, He:2, Li:3, Be:4, B:5, C:6, N:7, O:8, F:9, Ne:10,
-  Na:11, Mg:12, Al:13, Si:14, P:15, S:16, Cl:17, Ar:18, K:19, Ca:20,
-  Sc:21, Ti:22, V:23, Cr:24, Mn:25, Fe:26, Co:27, Ni:28, Cu:29, Zn:30
+  H: 1, He: 2, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9, Ne: 10,
+  Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, Ar: 18, K: 19, Ca: 20,
+  Sc: 21, Ti: 22, V: 23, Cr: 24, Mn: 25, Fe: 26, Co: 27, Ni: 28, Cu: 29, Zn: 30,
 };
 
-function romanToInt(s) {
-  if (!s) return 0;
-  const map = {I:1,V:5,X:10,L:50,C:100,D:500,M:1000};
-  let total = 0;
-  for (let i=0; i<s.length; i++){
-    const v = map[s[i]];
-    const nxt = map[s[i+1]] || 0;
-    total += v < nxt ? -v : v;
-  }
-  return total;
-}
+/** -----------------------------
+ * Helper functions
+ * ----------------------------- */
 
-function extractRomanTokens(str) {
-  const tokens = [];
-  const up = str.toUpperCase();
-  let cur = "";
-  const isRomanChar = (c) => "IVXLCDM".includes(c);
-  for (const c of up) {
-    if (isRomanChar(c)) cur += c;
-    else {
-      if (cur.length > 0) tokens.push(cur);
-      cur = "";
-    }
-  }
-  if (cur.length > 0) tokens.push(cur);
-  return tokens.filter(t => t.length > 0);
-}
-
+// Sum of all decimal digits in the string
 function sumDigits(str) {
   let s = 0;
-  for (const ch of str) if (/\d/.test(ch)) s += Number(ch);
+  for (const ch of str) {
+    if (/\d/.test(ch)) s += Number(ch);
+  }
   return s;
 }
 
-function countEmoji(str, emoji) {
-  return str.split(emoji).length - 1;
-}
-
+// Is n a prime number? (kept for future use if needed)
 function isPrime(n) {
   if (n < 2) return false;
-  for (let i=2; i*i<=n; i++) if (n % i === 0) return false;
+  for (let i = 2; i * i <= n; i++) {
+    if (n % i === 0) return false;
+  }
   return true;
 }
 
-function containsAffirmation(str) {
+// Does a string start with a letter?
+function startsWithLetter(str) {
+  return /^[A-Za-z]/.test(str);
+}
+
+// No character repeated 3 or more times in a row
+function noTripleRepeat(str) {
+  return !/(.)\1\1/.test(str);
+}
+
+// Count emoji occurrences
+function countEmoji(str, emoji) {
+  if (!str) return 0;
+  return str.split(emoji).length - 1;
+}
+
+// Includes a month name
+function containsMonth(str) {
   const lc = str.toLowerCase();
-  return lc.includes("i am loved") || lc.includes("i am worthy") || lc.includes("i am enough");
+  return months.some((m) => lc.includes(m));
+}
+
+// Includes one of the sponsor brand names
+function containsBrand(str) {
+  const lc = str.toLowerCase();
+  return brands.some((b) => lc.includes(b));
 }
 
 function containsTwoLetterElementSymbol(str) {
-  for (let i=0; i<str.length-1; i++) {
-    const pair = str[i] + str[i+1];
+  for (let i = 0; i < str.length - 1; i++) {
+    const pair = str[i] + str[i + 1];
     const norm = pair[0].toUpperCase() + pair[1].toLowerCase();
     if (elementSymbols.has(norm)) return true;
   }
@@ -85,73 +99,181 @@ function containsTwoLetterElementSymbol(str) {
 
 function sumAtomicNumbersInString(str) {
   let sum = 0;
-  for (let i=0; i<str.length; i++) {
+  for (let i = 0; i < str.length; i++) {
     const one = str[i].toUpperCase();
     if (atomicNumber[one]) sum += atomicNumber[one];
     if (i < str.length - 1) {
-      const two = str[i].toUpperCase() + str[i+1].toLowerCase();
+      const two = str[i].toUpperCase() + str[i + 1].toLowerCase();
       if (atomicNumber[two]) sum += atomicNumber[two];
     }
   }
   return sum;
 }
 
+// Build the visible password from the "core" region + Grandpa position
+// core = everything between 👴 and 🏠
+// grandpaPos = index inside core where 👴 sits in front of that character
+function buildGrandpaPassword(core, grandpaPos) {
+  const clampedPos = Math.max(0, Math.min(grandpaPos, core.length));
+  const left = core.slice(0, clampedPos);
+  const right = core.slice(clampedPos);
+  // Grandpa is somewhere in the string; home is ALWAYS at the very end
+  return `${left}👴${right}🏠`;
+}
+
+// Grandpa rule: 👴 must reach 🏠 with no 🪨 left anywhere
+function grandpaReachedHome(str) {
+  const g = str.indexOf("👴");
+  const h = str.indexOf("🏠");
+  if (g === -1 || h === -1) return false;
+
+  // Must be directly next to the house in order (…👴🏠)
+  if (g + 1 !== h) return false;
+
+  // No stones anywhere in the string
+  if (str.includes("🪨")) return false;
+
+  return true;
+}
+
 /** -----------------------------
- * Rules (easy → chaotic)
+ * Rule Builder (easy → hard, cohesive)
  * ----------------------------- */
-function buildRules(forbidden) {
+function buildBaseRules(forbidden) {
   return [
-    // BASIC
-    { id:"len5", label:"At least 5 characters.", test:v=>v.length>=5 },
-    { id:"num", label:"Must include a number.", test:v=>/\d/.test(v) },
-    { id:"upper", label:"Must include an uppercase letter.", test:v=>/[A-Z]/.test(v) },
-    { id:"special", label:"Must include a special character.", test:v=>/[^A-Za-z0-9\s]/.test(v) },
+    // 1–5: basic password stuff
+    {
+      id: "len5",
+      label: "Your password must be at least 5 characters long.",
+      test: (v) => v.length >= 5,
+    },
+    {
+      id: "lower",
+      label: "Include at least one lowercase letter.",
+      test: (v) => /[a-z]/.test(v),
+    },
+    {
+      id: "upper",
+      label: "Include at least one uppercase letter.",
+      test: (v) => /[A-Z]/.test(v),
+    },
+    {
+      id: "digit",
+      label: "Include at least one number.",
+      test: (v) => /\d/.test(v),
+    },
+    {
+      id: "special",
+      label: "Include at least one special character (like !, @, #, $, %, &).",
+      test: (v) => /[!@#$%^&*()[\]{};:'",.<>/?\\|`~_\-+=]/.test(v),
+    },
 
-    // INTERMEDIATE FUN
-    { id:"digitSum25", label:"Digits must sum to 25.", test:v=>sumDigits(v)===25 },
-    { id:"month", label:"Include a month name (e.g., March).", test:v=>{
-      const lc=v.toLowerCase(); return months.some(m=>lc.includes(m));
-    }},
-    { id:"romanPresent", label:"Include a Roman numeral (I,V,X,L,C,D,M).", test:v=>{
-      const toks = extractRomanTokens(v);
-      return toks.length>0;
-    }},
-    { id:"brand", label:"Include one of: pepsi, starbucks, or shell.", test:v=>{
-      const lc=v.toLowerCase(); return brands.some(b=>lc.includes(b));
-    }},
-    { id:"romanProduct35", label:"Roman numerals must multiply to 35.", test:v=>{
-      const toks = extractRomanTokens(v);
-      if (toks.length < 2) return false;
-      const vals = toks.map(romanToInt).filter(n=>n>1);
-      if (vals.length < 2) return false;
-      const prod = vals.reduce((a,b)=>a*b,1);
-      return prod === 35; // e.g., V(5) * VII(7)
-    }},
+    // 6–9: light constraints, still human-readable
+    {
+      id: "digitSum25",
+      label: "All the digits in your password must add up to exactly 25.",
+      test: (v) => {
+        const digits = v.match(/\d/g);
+        if (!digits) return false;
+        return sumDigits(v) === 25;
+      },
+    },
+    {
+      id: "monthName",
+      label: "Include the name of a month (like March or October).",
+      test: (v) => containsMonth(v),
+    },
+    {
+      id: "sponsorBrand",
+      label: "Include one of our sponsors: pepsi, starbucks, or shell.",
+      test: (v) => containsBrand(v),
+    },
 
-    // ADVANCED CHAOS (offline)
-    { id:"twoLetterElem", label:"Include a two-letter element symbol (e.g., He, Na, Fe).", test:v=>containsTwoLetterElementSymbol(v) },
-    { id:"egg", label:"Protect Paul the 🥚 (must include 🥚).", test:v=>v.includes("🥚") },
-    { id:"noFire", label:"No fire emoji allowed (🔥).", test:v=>!v.includes("🔥") },
-    { id:"weights4", label:"Add 4 of the weightlifter emoji 🏋️.", test:v=>countEmoji(v,"🏋️")>=4 || countEmoji(v,"🏋️‍♂️")>=4 || countEmoji(v,"🏋️‍♀️")>=4 },
-    { id:"affirm", label:'Include one affirmation ("i am loved" / "i am worthy" / "i am enough").', test:v=>containsAffirmation(v) },
-    { id:"atomic200", label:"Sum of atomic numbers in the password ≥ 200 (recognized symbols).", test:v=>sumAtomicNumbersInString(v) >= 200 },
+    // 10–12: event/emoji/game rules
+    {
+      id: "fireSafety",
+      label:
+        "If your password ever contains 🔥, you must also include 💧 or 🧯 to put it out.",
+      test: (v) => {
+        if (!v.includes("🔥")) return true;
+        return v.includes("💧") || v.includes("🧯");
+      },
+    },
+    {
+      id: "noTriples",
+      label: "No character may repeat 3 or more times in a row (no aaa, 111, !!!).",
+      test: (v) => noTripleRepeat(v),
+    },
 
-    // META
-    { id:"forbidden", label: `You may NOT use these letters: ${forbidden.join(", ")}`, test:v=>{
-      const lc=v.toLowerCase(); return !lc.includes(forbidden[0]) && !lc.includes(forbidden[1]);
-    }},
-    { id:"lenShown", label:"Password must include its own length as a number (e.g., “13”).", test:v=>{
-      const n = v.length.toString();
-      return v.includes(n);
-    }},
-    { id:"primeLen", label:"Password length must be a prime number.", test:v=>isPrime(v.length) },
+    // 13–15: slightly more “formal language / regex” flavored
+    {
+      id: "startsWithLetter",
+      label: "Your password must start with a letter.",
+      test: (v) => (v.length === 0 ? false : startsWithLetter(v)),
+    },
+    {
+      id: "minTwoWords",
+      label: "Include at least two 'words' separated by a space (e.g., hello WORLD7!).",
+      test: (v) => v.trim().split(/\s+/).filter(Boolean).length >= 2,
+    },
+
+    // 16–18: nerdy / chemistry rules
+    {
+      id: "twoLetterElement",
+      label: "Include a two-letter chemical element symbol (like He, Na, or Fe).",
+      test: (v) => containsTwoLetterElementSymbol(v),
+    },
+    {
+      id: "atomicSum",
+      label:
+        "The chemical element symbols in your password must have atomic numbers that add up to at least 120.",
+      test: (v) => sumAtomicNumbersInString(v) >= 120,
+    },
+    {
+      id: "strongEnough",
+      label: "Your password must show its strength: include at least 3 🏋️ emojis.",
+      test: (v) =>
+        countEmoji(v, "🏋️") +
+          countEmoji(v, "🏋️‍♂️") +
+          countEmoji(v, "🏋️‍♀️") >= 3,
+    },
+
+    // 19–21: meta / language shape
+    {
+      id: "forbidden",
+      label: `A sacrifice must be made. You may NOT use these letters anywhere: ${forbidden.join(
+        ", "
+      )}.`,
+      test: (v) => {
+        const lc = v.toLowerCase();
+        return !lc.includes(forbidden[0]) && !lc.includes(forbidden[1]);
+      },
+    },
+    {
+      id: "vowelCount",
+      label: "Include at least 5 vowels in total (a, e, i, o, u, any case).",
+      test: (v) => {
+        const m = v.match(/[aeiouAEIOU]/g);
+        return m && m.length >= 5;
+      },
+    },
+    {
+      id: "noWhitespaceEnd",
+      label: "Your password may not start or end with a space.",
+      test: (v) => !(v.startsWith(" ") || v.endsWith(" ")),
+    },
   ];
 }
 
-/** Progressive reveal */
-function evaluateAndSlice(value, rules) {
-  const results = rules.map(r => ({ id:r.id, label:r.label, valid:r.test(value) }));
-  const firstFail = results.findIndex(x=>!x.valid);
+/** Progressive reveal (with rule activation) */
+function evaluateAndSlice(value, rules, activeRuleIds) {
+  const results = rules.map((r) => {
+    const isActive = activeRuleIds ? activeRuleIds.has(r.id) : true;
+    const valid = isActive ? r.test(value) : true; // disabled rules auto-pass
+    return { id: r.id, label: r.label, valid, isActive };
+  });
+
+  const firstFail = results.findIndex((x) => !x.valid);
   const count = firstFail === -1 ? results.length : firstFail + 1;
   return { results, visible: results.slice(0, count) };
 }
@@ -275,7 +397,7 @@ function GaugeIcon({ className = "" }) {
   );
 }
 
-function RuleItem({ label, valid, isCurrent }) {
+function RuleItem({ label, valid, isCurrent, isActive, onToggle }) {
   return (
     <li
       className={[
@@ -286,7 +408,8 @@ function RuleItem({ label, valid, isCurrent }) {
           : "border-zinc-700/80 bg-zinc-900/70 text-zinc-200",
         isCurrent && !valid ? "animate-[blink_1.2s_ease-in-out_infinite]" : "",
         !valid &&
-          "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]"
+          "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]",
+        !isActive ? "opacity-60 border-dashed" : "",
       ].join(" ")}
     >
       {valid ? (
@@ -299,9 +422,28 @@ function RuleItem({ label, valid, isCurrent }) {
         </span>
       )}
 
-      <span className={valid ? "font-medium tracking-wide" : "tracking-wide"}>
+      <span
+        className={
+          valid
+            ? "font-medium tracking-wide text-sm sm:text-[0.9rem]"
+            : "tracking-wide text-sm sm:text-[0.9rem]"
+        }
+      >
+        {!isActive && (
+          <span className="mr-1 rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-zinc-400">
+            Off
+          </span>
+        )}
         {label}
       </span>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        className="ml-auto text-[10px] sm:text[11px] rounded-full border border-zinc-600 px-2 py-0.5 hover:border-yellow-400 hover:text-yellow-300 transition-colors"
+      >
+        {isActive ? "Disable" : "Enable"}
+      </button>
     </li>
   );
 }
@@ -310,8 +452,31 @@ function RuleItem({ label, valid, isCurrent }) {
  * App
  * ----------------------------- */
 export default function App() {
-  const [password, setPassword] = useState("");
+  // Core part of the password BETWEEN 👴 and 🏠 (user edit zone)
+  const [corePassword, setCorePassword] = useState("");
 
+  // Grandpa's position inside the core (0 = at the very start)
+  const [grandpaPos, setGrandpaPos] = useState(0);
+
+  // Refs to avoid stale values inside intervals
+  const corePasswordRef = useRef(corePassword);
+  const grandpaPosRef = useRef(grandpaPos);
+
+  useEffect(() => {
+    corePasswordRef.current = corePassword;
+  }, [corePassword]);
+
+  useEffect(() => {
+    grandpaPosRef.current = grandpaPos;
+  }, [grandpaPos]);
+
+  // Final visible password: core + 👴 somewhere + 🏠 at the end
+  const password = useMemo(
+    () => buildGrandpaPassword(corePassword, grandpaPos),
+    [corePassword, grandpaPos]
+  );
+
+  // Forbidden letters (static for this session)
   const forbidden = useMemo(() => {
     const alphabet = "abcdefghijklmnopqrstuvwxyz";
     const a = alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -320,25 +485,381 @@ export default function App() {
     return [a, b];
   }, []);
 
-  const RULES = useMemo(() => buildRules(forbidden), [forbidden]);
-  const { results, visible } = useMemo(
-    () => evaluateAndSlice(password, RULES),
-    [password, RULES]
+  // Base rules
+  const baseRules = useMemo(() => buildBaseRules(forbidden), [forbidden]);
+
+  /* -----------------------------
+   * API STATE: DICTIONARY
+   * ----------------------------- */
+  const dictWord = useMemo(
+    () => DICT_WORDS[Math.floor(Math.random() * DICT_WORDS.length)],
+    []
   );
 
-  const satisfied = visible.filter((r) => r.valid).length;
+  const [dictData, setDictData] = useState({
+    word: dictWord,
+    definition: null,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchDictionary() {
+      try {
+        setDictData((prev) => ({ ...prev, loading: true, error: null }));
+        const res = await fetch(
+          `https://api.dictionaryapi.dev/api/v2/entries/en/${dictWord}`
+        );
+        if (!res.ok) throw new Error("Dictionary fetch failed");
+        const data = await res.json();
+        const def =
+          data?.[0]?.meanings?.[0]?.definitions?.[0]?.definition ||
+          "No definition found.";
+        if (!cancelled) {
+          setDictData({
+            word: dictWord,
+            definition: def,
+            loading: false,
+            error: null,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setDictData({
+            word: dictWord,
+            definition: null,
+            loading: false,
+            error: err.message || "Dictionary error",
+          });
+        }
+      }
+    }
+
+    fetchDictionary();
+    return () => {
+      cancelled = true;
+    };
+  }, [dictWord]);
+
+  /* -----------------------------
+   * API STATE: WEATHER (Detroit, °F)
+   * ----------------------------- */
+  const [weatherData, setWeatherData] = useState({
+    tempF: null,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchWeather() {
+      try {
+        setWeatherData((prev) => ({ ...prev, loading: true, error: null }));
+        const res = await fetch(
+          "https://api.open-meteo.com/v1/forecast?latitude=42.3314&longitude=-83.0458&current=temperature_2m&temperature_unit=fahrenheit"
+        );
+        if (!res.ok) throw new Error("Weather fetch failed");
+        const data = await res.json();
+        const tempF = data?.current?.temperature_2m ?? null;
+        if (!cancelled) {
+          setWeatherData({
+            tempF,
+            loading: false,
+            error: null,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setWeatherData({
+            tempF: null,
+            loading: false,
+            error: err.message || "Weather error",
+          });
+        }
+      }
+    }
+
+    fetchWeather();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* -----------------------------
+   * API-BASED RULES
+   * ----------------------------- */
+  const apiRules = useMemo(() => {
+    const rules = [];
+
+    // Dictionary rule
+    if (dictData.loading) {
+      rules.push({
+        id: "dictRule",
+        label: "Loading a secret dictionary word…",
+        test: () => false,
+      });
+    } else if (dictData.error || !dictData.definition) {
+      rules.push({
+        id: "dictRule",
+        label: "Dictionary rule skipped (offline).",
+        test: () => true,
+      });
+    } else {
+      rules.push({
+        id: "dictRule",
+        label: `Include the English word that matches this definition: “${dictData.definition}”.`,
+        test: (v) => v.toLowerCase().includes(dictData.word.toLowerCase()),
+      });
+    }
+
+    // Weather rule
+    if (weatherData.loading) {
+      rules.push({
+        id: "weatherRule",
+        label: "Fetching Detroit's current temperature…",
+        test: () => false,
+      });
+    } else if (weatherData.error || weatherData.tempF == null) {
+      rules.push({
+        id: "weatherRule",
+        label: "Weather rule skipped (offline).",
+        test: () => true,
+      });
+    } else {
+      const rounded = Math.round(weatherData.tempF * 10) / 10; // 1 decimal
+      const tolerance = 3; // ±3°F allowed
+
+      rules.push({
+        id: "weatherRule",
+        label: `Include a number within ±${tolerance}°F of Detroit's current temperature (${rounded.toFixed(
+          1
+        )}°F).`,
+        test: (v) => {
+          const matches = v.match(/-?\d+(\.\d+)?/g);
+          if (!matches) return false;
+          return matches.some((m) => {
+            const n = parseFloat(m);
+            if (Number.isNaN(n)) return false;
+            return Math.abs(n - rounded) <= tolerance;
+          });
+        },
+      });
+    }
+
+    return rules;
+  }, [dictData, weatherData]);
+
+  /* -----------------------------
+   * GAME-BASED RULES (Grandpa in password)
+   * ----------------------------- */
+  const gameRules = useMemo(
+    () => [
+      {
+        id: "grandpaHome",
+        label:
+          "Make sure the old man reaches home: your password must contain …👴🏠… with no stones 🪨 left anywhere.",
+        test: (v) => grandpaReachedHome(v),
+      },
+    ],
+    []
+  );
+
+  const RULES = useMemo(
+    () => [...baseRules, ...gameRules, ...apiRules],
+    [baseRules, gameRules, apiRules]
+  );
+
+  /* -----------------------------
+   * Rule activation (Enable / Disable)
+   * ----------------------------- */
+  const [activeRuleIds, setActiveRuleIds] = useState(() => new Set());
+
+  // Keep activeRuleIds in sync with RULES
+  useEffect(() => {
+    setActiveRuleIds((prev) => {
+      const next = new Set(prev);
+      const ruleIdSet = new Set(RULES.map((r) => r.id));
+
+      // remove any ids that no longer exist
+      for (const id of next) {
+        if (!ruleIdSet.has(id)) next.delete(id);
+      }
+      // add any new rule ids
+      RULES.forEach((r) => {
+        if (!next.has(r.id)) next.add(r.id);
+      });
+
+      return next;
+    });
+  }, [RULES]);
+
+  const handleToggleRule = (id) => {
+    setActiveRuleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const { results, visible } = useMemo(
+    () => evaluateAndSlice(password, RULES, activeRuleIds),
+    [password, RULES, activeRuleIds]
+  );
+
+  const activeResults = results.filter((r) => r.isActive);
+  const satisfied = activeResults.filter((r) => r.valid).length;
+  const allDone =
+    activeResults.length > 0 && satisfied === activeResults.length;
+  const progress =
+    activeResults.length === 0 ? 0 : (satisfied / activeResults.length) * 100;
   const currentIndex = visible.length - 1;
-  const allDone = results.every((r) => r.valid);
-  const progress = results.length === 0 ? 0 : (satisfied / results.length) * 100;
+
+  // --- Grandpa auto-walk every ~12 seconds ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGrandpaPos((prevPos) => {
+        const core = corePasswordRef.current;
+        if (!core.length) return prevPos;
+        if (prevPos >= core.length) return prevPos; // already at home
+
+        const nextPos = prevPos + 1;
+        const nextPassword = buildGrandpaPassword(core, nextPos);
+
+        // If Grandpa is now right before a stone, he stumbled -> reset
+        if (nextPassword.includes("👴🪨")) {
+          // Reset the middle content and Grandpa position
+          setCorePassword("");
+          return 0;
+        }
+
+        return nextPos;
+      });
+    }, 12000); // 12 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- Stone spawner: randomly add 🪨 between Grandpa and Home, not next to each other ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCorePassword((prevCore) => {
+        const core = prevCore;
+        if (!core.length) return core;
+
+        const gPos = grandpaPosRef.current;
+        // Stones must appear AFTER Grandpa, BEFORE Home (i.e., inside the core, past gPos)
+        const startIndex = Math.min(core.length - 1, gPos + 1);
+        const endIndex = core.length - 1;
+        if (startIndex > endIndex) return core; // no space between Grandpa and Home
+
+        let attempts = 0;
+        let indexToPlace = -1;
+
+        while (attempts < 8) {
+          const candidate =
+            Math.floor(Math.random() * (endIndex - startIndex + 1)) +
+            startIndex;
+
+          const ch = core[candidate];
+          const left = core[candidate - 1];
+          const right = core[candidate + 1];
+
+          // No stone here already, and no stones directly next to it
+          if (ch !== "🪨" && left !== "🪨" && right !== "🪨") {
+            indexToPlace = candidate;
+            break;
+          }
+          attempts++;
+        }
+
+        if (indexToPlace === -1) return core;
+
+        return (
+          core.slice(0, indexToPlace) + "🪨" + core.slice(indexToPlace)
+        );
+      });
+    }, 10000); // ~10 seconds between spawns
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- SOUND EFFECTS ---
+  const correctSoundRef = useRef(null);
+  const incorrectSoundRef = useRef(null);
+  const previousVisibleRef = useRef(null);
+
+  useEffect(() => {
+    const currentVisible = visible.map((r) => r.valid);
+    const prev = previousVisibleRef.current;
+
+    let shouldPlayCorrect = false;
+    let shouldPlayIncorrect = false;
+
+    if (prev) {
+      const len = Math.min(prev.length, currentVisible.length);
+
+      // Compare overlapping visible rules
+      for (let i = 0; i < len; i++) {
+        if (!prev[i] && currentVisible[i]) {
+          shouldPlayCorrect = true;
+        } else if (prev[i] && !currentVisible[i]) {
+          shouldPlayIncorrect = true;
+        }
+      }
+
+      // If visible got shorter and we lost some previously valid rules, treat as breaking older rules
+      if (currentVisible.length < prev.length) {
+        for (let i = currentVisible.length; i < prev.length; i++) {
+          if (prev[i]) {
+            shouldPlayIncorrect = true;
+            break;
+          }
+        }
+      }
+    }
+
+    previousVisibleRef.current = currentVisible;
+
+    if (shouldPlayCorrect && correctSoundRef.current) {
+      correctSoundRef.current.currentTime = 0;
+      correctSoundRef.current.play().catch(() => {});
+    }
+
+    if (shouldPlayIncorrect && incorrectSoundRef.current) {
+      incorrectSoundRef.current.currentTime = 0;
+      incorrectSoundRef.current.play().catch(() => {});
+    }
+  }, [visible]);
+
+  // Handle user typing. They only control the core;
+  // we always re-insert 👴 and 🏠 in the right places.
+  const handlePasswordChange = (e) => {
+    const raw = e.target.value || "";
+    // Strip out Grandpa and Home from whatever the user typed
+    let cleaned = raw.replace(/👴/g, "").replace(/🏠/g, "");
+
+    setCorePassword(cleaned);
+    // Clamp Grandpa's position so he never goes past the end of the core
+    setGrandpaPos((prev) => Math.min(prev, cleaned.length));
+  };
 
   return (
-    <div
-      className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 selection:bg-yellow-500 selection:text-black"
-      style={{
-        fontFamily:
-          '"Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      }}
-    >
+    <div className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 font-display selection:bg-yellow-500 selection:text-black">
+      {/* Audio elements */}
+      <audio ref={correctSoundRef} src="/sounds/correct.mp3" preload="auto" />
+      <audio
+        ref={incorrectSoundRef}
+        src="/sounds/incorrect.mp3"
+        preload="auto"
+      />
+
+      {/* Snowflakes effect */}
+      <Snowflakes />
+
       {/* big soft glows */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -left-40 top-[-8rem] h-72 w-72 rounded-full bg-yellow-500/15 blur-3xl" />
@@ -346,7 +867,8 @@ export default function App() {
         <div className="absolute bottom-[-8rem] left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-yellow-500/10 blur-3xl" />
       </div>
 
-      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10 animate-[fadeIn_650ms_ease-in-out]">
+      {/* main container with 2s ease-in-out animation */}
+      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10 animate-[fadeInUp_2s_ease-in-out]">
         {/* TOP BAR / HEADER */}
         <header className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
@@ -368,12 +890,14 @@ export default function App() {
             </div>
 
             <p className="max-w-xl text-sm sm:text-base text-zinc-300">
-              Type a password and watch the rules light up in real time. When a
-              rule fails, the next level stays locked until you fix it.
+              Start with simple rules and slowly unlock weirder, more
+              pattern-based constraints. Fix the current rule to reveal the next
+              one. Grandpa is now part of the string itself: you literally need
+              👴 and 🏠 in your password, with a clean path between them.
             </p>
           </div>
 
-          <div className="flex gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out]">
+          <div className="flex flex-col gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out]">
             <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 shadow-[0_0_26px_rgba(234,179,8,0.28)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_32px_rgba(234,179,8,0.4)]">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/25 text-yellow-50">
                 <GaugeIcon className="h-4 w-4" />
@@ -383,12 +907,28 @@ export default function App() {
                   Rules Complete
                 </div>
                 <div className="mt-1 text-lg font-semibold text-yellow-50">
-                  {Math.min(satisfied, results.length)} / {results.length}
+                  {satisfied} / {activeResults.length || results.length}
                 </div>
               </div>
             </div>
 
- 
+            {/* Tiny Grandpa hint card */}
+            <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/80 px-4 py-3 text-xs sm:text-sm text-yellow-100 shadow-[0_0_24px_rgba(0,0,0,0.7)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/15 text-xl">
+                👴
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold tracking-wide text-yellow-200">
+                  Grandpa&apos;s Rule
+                </div>
+                <div className="mt-0.5 text-[11px] sm:text-xs text-yellow-100/80">
+                  Grandpa starts at the left and slowly walks right every few
+                  seconds. Stones 🪨 randomly appear between him and his home.
+                  Delete every stone so he can safely end up as{" "}
+                  <span className="font-mono">…👴🏠</span>.
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -407,9 +947,9 @@ export default function App() {
                   <input
                     type="text"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
                     className="peer w-full rounded-xl bg-zinc-900/80 border border-zinc-700 text-base sm:text-lg md:text-xl px-4 sm:px-5 py-3 sm:py-3.5 text-yellow-50 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/60 focus:border-yellow-500/50 transition-all duration-300 ease-out"
-                    placeholder="Start typing something legendary…"
+                    placeholder="Start typing something legendary… Grandpa will find his way."
                     aria-label="Password input"
                   />
                   <div className="pointer-events-none absolute inset-x-0 -bottom-1 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
@@ -421,9 +961,12 @@ export default function App() {
                   <CheckIcon className="h-3.5 w-3.5 text-yellow-300" />
                   <span>
                     <span className="font-semibold text-yellow-300">
-                      {Math.min(satisfied, results.length)}
+                      {satisfied}
                     </span>
-                    <span> / {results.length} rules satisfied</span>
+                    <span>
+                      {" "}
+                      / {activeResults.length || results.length} rules satisfied
+                    </span>
                   </span>
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -444,9 +987,6 @@ export default function App() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-
-              {/* helper chips (kept empty for now, but styled for future) */}
-              <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-zinc-400" />
             </div>
 
             {/* How it works panel */}
@@ -456,15 +996,18 @@ export default function App() {
                 How it works
               </div>
               <p className="leading-relaxed">
-                Rules unlock in sequence. When one fails, new rules stop revealing
-                until you fix it. Tune the password until every rule on the right
-                is glowing.
+                Rules unlock in order. When one fails, new rules stop revealing
+                until you fix it. You can temporarily disable any rule to
+                demonstrate its effect. Some rules are classic password checks,
+                others are tiny language puzzles—and one of them cares deeply
+                about an old man, his stones, and his house.
               </p>
             </div>
 
             {allDone && (
               <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 text-sm sm:text-base text-yellow-200 shadow-[0_0_30px_rgba(234,179,8,0.25)] animate-[popIn_350ms_ease-out]">
-                All rules satisfied. Paul is proud. 🥚
+                All active rules satisfied. The language is accepted. Grandpa is
+                standing safely by his house. 👴🏠
               </div>
             )}
           </section>
@@ -478,8 +1021,9 @@ export default function App() {
                   Live Rule Feed
                 </h2>
                 <p className="mt-0.5 text-[11px] sm:text-xs text-zinc-400">
-                  Each line is evaluated every keystroke. The current rule pulses
-                  until you satisfy it.
+                  Each rule is evaluated on every keystroke. The current rule
+                  pulses until you satisfy it. Use the toggle on the right to
+                  Disable / Enable rules mid-game.
                 </p>
               </div>
             </div>
@@ -496,6 +1040,8 @@ export default function App() {
                       label={r.label}
                       valid={r.valid}
                       isCurrent={i === currentIndex && !r.valid}
+                      isActive={r.isActive}
+                      onToggle={() => handleToggleRule(r.id)}
                     />
                   </div>
                 ))}
