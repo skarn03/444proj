@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Snowflakes from "./Snowflakes";
+import babyLaughGif from "./baby-laugh-ai-baby.gif";
 
 /** -----------------------------
  * Helpers
@@ -222,6 +223,8 @@ function RuleItem({ label, valid, isCurrent }) {
  * ----------------------------- */
 export default function App() {
   const [password, setPassword] = useState("");
+  const [showBabyLaugh, setShowBabyLaugh] = useState(false);
+  const previousSatisfiedRef = useRef(0);
 
   const forbidden = useMemo(() => {
     const alphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -242,10 +245,35 @@ export default function App() {
   const allDone = results.every((r) => r.valid);
   const progress = results.length === 0 ? 0 : (satisfied / results.length) * 100;
 
+  // Track when a new rule is satisfied and show baby laugh GIF
+  useEffect(() => {
+    if (satisfied > previousSatisfiedRef.current && satisfied > 0) {
+      setShowBabyLaugh(true);
+      const timer = setTimeout(() => {
+        setShowBabyLaugh(false);
+      }, 2000); // Show for 2 seconds
+      return () => clearTimeout(timer);
+    }
+    previousSatisfiedRef.current = satisfied;
+  }, [satisfied]);
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 font-display selection:bg-yellow-500 selection:text-black">
       {/* Snowflakes effect */}
       <Snowflakes />
+      
+      {/* Baby laugh GIF when rule is satisfied */}
+      {showBabyLaugh && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="animate-[bounceIn_600ms_ease-out]">
+            <img
+              src={babyLaughGif}
+              alt="Baby laughing"
+              className="w-48 h-48 rounded-full shadow-[0_0_60px_rgba(234,179,8,0.6)] border-4 border-yellow-400/50"
+            />
+          </div>
+        </div>
+      )}
       
       {/* big soft glows */}
       <div className="pointer-events-none fixed inset-0">
