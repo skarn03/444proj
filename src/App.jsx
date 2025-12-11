@@ -162,7 +162,14 @@ function evaluateAndSlice(value, rules) {
 function CheckIcon({ className = "" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M20 6L9 17l-5-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -170,7 +177,14 @@ function CheckIcon({ className = "" }) {
 function AlertIcon({ className = "" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -186,17 +200,93 @@ function SparkIcon({ className = "" }) {
   );
 }
 
+function LockIcon({ className = "" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <rect
+        x="5"
+        y="10"
+        width="14"
+        height="10"
+        rx="2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M9 10V7a3 3 0 0 1 6 0v3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function KeyIcon({ className = "" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <circle
+        cx="8"
+        cy="12"
+        r="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M11 12h6l2 2-2 2-1.5-1.5L14 17"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function GaugeIcon({ className = "" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M12 4a9 9 0 0 0-9 9 1 1 0 0 0 1 1h2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 4a9 9 0 0 1 9 9 1 1 0 0 1-1 1h-2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 12 16 9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function RuleItem({ label, valid, isCurrent }) {
   return (
     <li
       className={[
         "flex items-center gap-3 rounded-xl px-3 py-2",
-        "border transition-all duration-300 ease-out",
+        "border transition-all duration-400 ease-in-out",
         valid
           ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-100 shadow-[0_0_16px_rgba(234,179,8,0.18)]"
           : "border-zinc-700/80 bg-zinc-900/70 text-zinc-200",
         isCurrent && !valid ? "animate-[blink_1.2s_ease-in-out_infinite]" : "",
-        !valid && "hover:border-yellow-500/40 hover:bg-zinc-900/90"
+        !valid &&
+          "hover:border-yellow-500/60 hover:bg-zinc-900/90 hover:-translate-y-[1px]"
       ].join(" ")}
     >
       {valid ? (
@@ -242,7 +332,13 @@ export default function App() {
   const progress = results.length === 0 ? 0 : (satisfied / results.length) * 100;
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 font-display selection:bg-yellow-500 selection:text-black">
+    <div
+      className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-950 to-black text-yellow-50 selection:bg-yellow-500 selection:text-black"
+      style={{
+        fontFamily:
+          '"Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      }}
+    >
       {/* big soft glows */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -left-40 top-[-8rem] h-72 w-72 rounded-full bg-yellow-500/15 blur-3xl" />
@@ -250,54 +346,60 @@ export default function App() {
         <div className="absolute bottom-[-8rem] left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-yellow-500/10 blur-3xl" />
       </div>
 
-      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10">
+      <main className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pt-10 animate-[fadeIn_650ms_ease-in-out]">
         {/* TOP BAR / HEADER */}
         <header className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-yellow-200/90">
+            <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-yellow-200/90 animate-[slideDown_500ms_ease-in-out]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-300" />
-              Live Rules Engine
+              <span className="flex items-center gap-1">
+                <SparkIcon className="h-3 w-3" />
+                Live Rules Engine
+              </span>
             </div>
 
             <div className="flex items-center gap-3">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-yellow-100 drop-shadow-[0_0_20px_rgba(250,204,21,0.25)]">
                 Password <span className="text-yellow-400">Chaos</span>
               </h1>
-              <span className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-300 shadow-[0_0_16px_rgba(234,179,8,0.4)]">
-                <SparkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-yellow-500/15 text-yellow-300 shadow-[0_0_16px_rgba(234,179,8,0.4)] animate-[popIn_420ms_ease-out]">
+                <LockIcon className="h-4 w-4" />
               </span>
             </div>
 
             <p className="max-w-xl text-sm sm:text-base text-zinc-300">
-              Type a password and watch the rules light up in real time. Once a rule fails, the next level stays locked until you fix it.
+              Type a password and watch the rules light up in real time. When a
+              rule fails, the next level stays locked until you fix it.
             </p>
           </div>
 
-          <div className="flex gap-3 self-start md:self-auto">
-            <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-right shadow-[0_0_26px_rgba(234,179,8,0.28)] transition-all duration-300 ease-out">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-yellow-200/80">
-                Rules Complete
+          <div className="flex gap-3 self-start md:self-auto animate-[fadeIn_700ms_ease-in-out]">
+            <div className="flex items-center gap-3 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 shadow-[0_0_26px_rgba(234,179,8,0.28)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_32px_rgba(234,179,8,0.4)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-500/25 text-yellow-50">
+                <GaugeIcon className="h-4 w-4" />
               </div>
-              <div className="mt-1 text-lg font-semibold text-yellow-50">
-                {Math.min(satisfied, results.length)} / {results.length}
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-yellow-200/80">
+                  Rules Complete
+                </div>
+                <div className="mt-1 text-lg font-semibold text-yellow-50">
+                  {Math.min(satisfied, results.length)} / {results.length}
+                </div>
               </div>
             </div>
-            <div className="hidden sm:flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950/80 px-3 py-3 text-xs text-zinc-400">
-              <span className="uppercase tracking-[0.18em] text-[10px]">
-                Visual Mode
-              </span>
-              <span className="text-sm font-medium text-yellow-200">Black & Yellow</span>
-            </div>
+
+ 
           </div>
         </header>
 
         {/* MAIN GRID */}
         <div className="grid flex-1 gap-6 md:gap-7 lg:gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] items-start">
           {/* LEFT: input / helper */}
-          <section className="space-y-4 md:space-y-5">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-4 sm:p-5 shadow-[0_0_32px_rgba(0,0,0,0.75)] transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_0_40px_rgba(234,179,8,0.18)]">
+          <section className="space-y-4 md:space-y-5 animate-[fadeIn_700ms_ease-in-out]">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-4 sm:p-5 shadow-[0_0_32px_rgba(0,0,0,0.75)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_40px_rgba(234,179,8,0.18)]">
               <label className="block">
-                <span className="mb-2 block text-xs sm:text-sm text-yellow-200/90">
+                <span className="mb-2 flex items-center gap-2 text-xs sm:text-sm text-yellow-200/90">
+                  <LockIcon className="h-3.5 w-3.5" />
                   Enter a password
                 </span>
                 <div className="relative">
@@ -315,16 +417,22 @@ export default function App() {
               </label>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-zinc-400">
-                <span>
-                  <span className="font-semibold text-yellow-300">
-                    {Math.min(satisfied, results.length)}
+                <span className="flex items-center gap-1.5">
+                  <CheckIcon className="h-3.5 w-3.5 text-yellow-300" />
+                  <span>
+                    <span className="font-semibold text-yellow-300">
+                      {Math.min(satisfied, results.length)}
+                    </span>
+                    <span> / {results.length} rules satisfied</span>
                   </span>
-                  <span> / {results.length} rules satisfied</span>
                 </span>
-                <span>
-                  Length:{" "}
-                  <span className="font-medium text-yellow-200">
-                    {password.length}
+                <span className="flex items-center gap-1.5">
+                  <GaugeIcon className="h-3.5 w-3.5 text-yellow-300" />
+                  <span>
+                    Length:{" "}
+                    <span className="font-medium text-yellow-200">
+                      {password.length}
+                    </span>
                   </span>
                 </span>
               </div>
@@ -337,23 +445,14 @@ export default function App() {
                 />
               </div>
 
-              {/* helper chips */}
-              <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-zinc-400">
-                {/* <span className="rounded-full border border-zinc-700/80 bg-zinc-900/80 px-2 py-1">
-                  Forbidden letters:{" "}
-                  <span className="text-yellow-300 font-semibold">
-                    {forbidden.join(", ")}
-                  </span>
-                </span> */}
-                {/* <span className="rounded-full border border-zinc-700/80 bg-zinc-900/80 px-2 py-1">
-                  Mix months, brands, Roman numerals, and emojis.
-                </span> */}
-              </div>
+              {/* helper chips (kept empty for now, but styled for future) */}
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-zinc-400" />
             </div>
 
             {/* How it works panel */}
-            <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4 text-xs sm:text-sm text-yellow-100/90 shadow-[0_0_24px_rgba(234,179,8,0.16)] transition-all duration-300 ease-out hover:-translate-y-[1px] hover:border-yellow-300/50">
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-yellow-300/90">
+            <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4 text-xs sm:text-sm text-yellow-100/90 shadow-[0_0_24px_rgba(234,179,8,0.16)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:border-yellow-300/50">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-yellow-300/90">
+                <SparkIcon className="h-3 w-3" />
                 How it works
               </div>
               <p className="leading-relaxed">
@@ -371,10 +470,11 @@ export default function App() {
           </section>
 
           {/* RIGHT: rule feed */}
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-4 sm:p-5 md:p-6 shadow-[0_0_32px_rgba(0,0,0,0.85)] transition-all duration-300 ease-out hover:-translate-y-[1px] hover:shadow-[0_0_40px_rgba(234,179,8,0.18)]">
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/90 p-4 sm:p-5 md:p-6 shadow-[0_0_32px_rgba(0,0,0,0.85)] transition-all duration-500 ease-in-out hover:-translate-y-[2px] hover:shadow-[0_0_40px_rgba(234,179,8,0.18)] animate-[fadeIn_750ms_ease-in-out]">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-sm sm:text-base font-semibold tracking-wide text-yellow-100">
+                <h2 className="flex items-center gap-2 text-sm sm:text-base font-semibold tracking-wide text-yellow-100">
+                  <SparkIcon className="h-4 w-4 text-yellow-300" />
                   Live Rule Feed
                 </h2>
                 <p className="mt-0.5 text-[11px] sm:text-xs text-zinc-400">
@@ -382,7 +482,6 @@ export default function App() {
                   until you satisfy it.
                 </p>
               </div>
-         
             </div>
 
             <div className="relative mt-2 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-zinc-900/40">
